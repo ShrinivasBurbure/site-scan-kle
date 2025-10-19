@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Watch - Real-time Issue Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #eef2ff;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --danger: #f94144;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --hover-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f8fafc;
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            line-height: 1.6;
+        }
+        
+        header {
+            padding: 12px 24px;
+            background: white;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 1000;
+            position: relative;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo {
+            width: 42px;
+            height: 42px;
+            background: var(--gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .app-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .search-container {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 24px;
+            position: relative;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 14px 20px 14px 48px;
+            border: 1px solid var(--gray-light);
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: white;
+        }
+        
+        .search-box:focus {
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+            border-color: var(--primary);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+            transition: var(--transition);
+        }
+        
+        .search-box:focus + .search-icon {
+            color: var(--primary);
+        }
+        
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--gray);
+            background: var(--gray-light);
+            padding: 8px 12px;
+            border-radius: 20px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .connected { background-color: #4ade80; }
+        .disconnected { background-color: var(--danger); }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: var(--hover-shadow);
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .sidebar {
+            width: 400px;
+            background: white;
+            border-right: 1px solid var(--gray-light);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.08);
+            z-index: 500;
+        }
+        
+        .sidebar-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+        
+        .sidebar-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-sidebar {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--gray);
+            cursor: pointer;
+            display: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        
+        .close-sidebar:hover {
+            background: var(--gray-light);
+        }
+        
+        .status-filters {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-light);
+            background: var(--primary-light);
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 10px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 12px;
+            background: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .filter-btn.active {
+            background: var(--gradient);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .filter-btn:hover:not(.active) {
+            background: var(--gray-light);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .pending { background-color: var(--danger); }
+        .solved { background-color: #4ade80; }
+        .in-progress { background-color: var(--warning); }
+        
+        .complaint-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+        
+        .complaint-item {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-light);
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+        
+        .complaint-item:hover {
+            background: var(--primary-light);
+            transform: translateX(4px);
+        }
+        
+        .complaint-item:last-child {
+            border-bottom: none;
+        }
+        
+        .complaint-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+        
+        .complaint-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--secondary);
+        }
+        
+        .complaint-location {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .complaint-description {
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            color: var(--dark);
+        }
+        
+        .complaint-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 12px;
+        }
+        
+        .complaint-contact {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .complaint-department {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+        
+        .control-btn {
+            background: white;
+            border: none;
+            border-radius: 12px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            color: var(--gray);
+            font-size: 1.2rem;
+        }
+        
+        .control-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.active {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        
+        .zoom-controls {
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .zoom-btn {
+            background: white;
+            border: none;
+            width: 50px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--gray);
+            transition: var(--transition);
+            font-size: 1.1rem;
+        }
+        
+        .zoom-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .zoom-in {
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .location-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            color: var(--dark);
+            z-index: 1000;
+            box-shadow: var(--card-shadow);
+            max-width: 320px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .location-info h3 {
+            margin-bottom: 12px;
+            color: var(--primary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .location-info p {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .toggle-sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+            z-index: 1000;
+            display: none;
+            transition: var(--transition);
+            font-size: 1.2rem;
+            color: var(--gray);
+        }
+        
+        .toggle-sidebar:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .map-type-controls {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .map-type-btn {
+            background: white;
+            border: none;
+            width: 50px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--gray);
+            transition: var(--transition);
+            font-size: 1.1rem;
+        }
+        
+        .map-type-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        
+        .map-type-btn.active {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 16px;
+            background: white;
+            border-top: 1px solid var(--gray-light);
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .complaint-count {
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+        
+        .coordinates {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-top: 8px;
+        }
+        
+        .add-complaint-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+        
+        .add-complaint-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.4);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 520px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .close-modal {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .close-modal:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 24px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            background: white;
+            font-family: inherit;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--gray);
+            border: 1px solid var(--gray-light);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--gray-light);
+        }
+        
+        .vote-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .vote-btn {
+            background: var(--gray-light);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+        
+        .vote-btn:hover {
+            background: #e2e8f0;
+        }
+        
+        .vote-btn.voted {
+            background: var(--gradient);
+            color: white;
+        }
+        
+        .vote-count {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .loading-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+        
+        .loading-message i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+        
+        .error-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--danger);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            color: var(--gray-light);
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 12px;
+            color: var(--gray);
+        }
+        
+        .no-coordinates-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .complaint-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .action-btn.in-progress {
+            background: #ffd166;
+            color: #7a5c00;
+        }
+        
+        .action-btn.solved {
+            background: #06d6a0;
+            color: #035e45;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .complaint-priority {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .priority-high { background-color: var(--danger); }
+        .priority-medium { background-color: var(--warning); }
+        .priority-low { background-color: #4ade80; }
+        
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-light);
+            background: white;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 4px;
+        }
+        
+        .complaint-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin: 0 24px 16px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            border: 1px solid var(--gray-light);
+        }
+        
+        .complaint-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+        }
+        
+        .complaint-card.my-complaint {
+            border-left: 4px solid var(--primary);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                height: 100%;
+                transform: translateX(-100%);
+                z-index: 600;
+                width: 85%;
+                max-width: 320px;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .close-sidebar {
+                display: flex;
+            }
+            
+            .toggle-sidebar {
+                display: flex;
+            }
+            
+            .search-container {
+                margin: 0 12px;
+            }
+            
+            .app-name {
+                font-size: 1.2rem;
+            }
+            
+            .location-info {
+                max-width: 250px;
+                left: 10px;
+                bottom: 10px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .stats-bar {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            
+            .stat-item {
+                flex: 0 0 calc(50% - 6px);
+            }
+            
+            .complaint-card {
+                margin: 0 16px 16px;
+            }
+            
+            header {
+                padding: 12px 16px;
+            }
+            
+            .modal-content {
+                width: 95%;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+
+        /* Animation for refresh button */
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .rotating {
+            animation: rotate 1s linear infinite;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 16px 20px;
+            background: white;
+            color: var(--dark);
+            border-radius: 10px;
+            box-shadow: var(--hover-shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--success);
+            max-width: 350px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning);
+        }
+
+        /* Heatmap legend */
+        .heatmap-legend {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            z-index: 1000;
+            display: none;
+        }
+
+        .heatmap-legend h4 {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--dark);
+        }
+
+        .legend-items {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .legend-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <div class="logo"><i class="fas fa-map-marked-alt"></i></div>
+            <div class="app-name">Community Watch</div>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" placeholder="Search issues, locations, departments...">
+            <div class="search-icon">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+        
+        <div class="user-controls">
+            <div class="connection-status" id="connection-status">
+                <div class="status-indicator disconnected" id="status-indicator"></div>
+                <span id="status-text">Connecting...</span>
+            </div>
+          
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    <i class="fas fa-list-ul"></i>
+                    Community Issues <span class="complaint-count" id="complaint-count">0</span>
+                </div>
+                <button class="close-sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="stats-bar" id="stats-bar">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+            
+            <div class="status-filters">
+                <div class="filter-options">
+                    <button class="filter-btn active" data-status="all">
+                        <span>All</span>
+                    </button>
+                    <button class="filter-btn" data-status="pending">
+                        <div class="status-indicator pending"></div>
+                        <span>Pending</span>
+                    </button>
+                    <button class="filter-btn" data-status="in-progress">
+                        <div class="status-indicator in-progress"></div>
+                        <span>In Progress</span>
+                    </button>
+                    <button class="filter-btn" data-status="solved">
+                        <div class="status-indicator solved"></div>
+                        <span>Resolved</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="complaint-list" id="complaint-list">
+                <div class="loading-message" id="loading-message">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading community issues...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <button class="toggle-sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+           <!--<div class="location-info">
+                <h3><i class="fas fa-location-arrow"></i> Your Location</h3>
+                <p id="location-details">Detecting your location...</p>
+                <p id="distance-info"></p>
+            </div>--> 
+            
+            <div class="map-controls">
+                <button class="control-btn" id="locate-btn" title="Find my location">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+                <button class="control-btn" id="layers-btn" title="Map layers">
+                    <i class="fas fa-layer-group"></i>
+                </button>
+            </div>
+            
+            <div class="zoom-controls">
+                <button class="zoom-btn zoom-in" id="zoom-in">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="zoom-btn zoom-out" id="zoom-out">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            
+            <div class="map-type-controls">
+                <button class="map-type-btn active" id="standard-map" title="Standard Map">
+                    <i class="fas fa-map"></i>
+                </button>
+                <button class="map-type-btn" id="satellite-map" title="Satellite View">
+                    <i class="fas fa-globe-americas"></i>
+                </button>
+            </div>
+            
+            <button class="add-complaint-btn" id="add-complaint-btn">
+                <i class="fas fa-plus-circle"></i>
+                Report Issue
+            </button>
+        </div>
+    </div>
+    
+    <!-- Add Complaint Modal -->
+    <div class="modal" id="add-complaint-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-exclamation-circle"></i> Report New Issue</h2>
+                <button class="close-modal" id="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="complaint-form">
+                    <div class="form-group">
+                        <label class="form-label" for="complaint-name">
+                            <i class="fas fa-user"></i> Your Name
+                        </label>
+                        <input type="text" class="form-input" id="complaint-name" placeholder="Enter your full name" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="complaint-phone">
+                                <i class="fas fa-phone"></i> Phone Number
+                            </label>
+                            <input type="tel" class="form-input" id="complaint-phone" placeholder="Phone number" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="complaint-email">
+                                <i class="fas fa-envelope"></i> Email (Optional)
+                            </label>
+                            <input type="email" class="form-input" id="complaint-email" placeholder="Email address">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="complaint-details">
+                            <i class="fas fa-info-circle"></i> Issue Details
+                        </label>
+                        <textarea class="form-textarea" id="complaint-details" placeholder="Please provide a detailed description of the issue..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="complaint-department">
+                            <i class="fas fa-building"></i> Responsible Department
+                        </label>
+                        <select class="form-select" id="complaint-department" required>
+                            <option value="">Select a department</option>
+                            <option value="Public Works">Public Works</option>
+                            <option value="Water Department">Water Department</option>
+                            <option value="Electricity Department">Electricity Department</option>
+                            <option value="Sanitation">Sanitation</option>
+                            <option value="Traffic Police">Traffic Police</option>
+                            <option value="Parks & Recreation">Parks & Recreation</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="complaint-location">
+                            <i class="fas fa-map-marker-alt"></i> Location Description
+                        </label>
+                        <input type="text" class="form-input" id="complaint-location" placeholder="Street, landmark, area" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-crosshairs"></i> Location Coordinates
+                        </label>
+                        <div class="coordinates">
+                            Latitude: <span id="selected-lat">Select on map</span>, 
+                            Longitude: <span id="selected-lng">Select on map</span>
+                        </div>
+                        <small>Click on the map to select the exact location</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-complaint">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-primary" id="submit-complaint">
+                    <i class="fas fa-paper-plane"></i> Submit Report
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Community Watch &copy; 2023 | Empowering Communities Through Transparency</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // =============================================
+        // SUPABASE CONFIGURATION
+        // =============================================
+        const SUPABASE_CONFIG = {
+            url: 'https://wufxlfsavttdijwyxwsv.supabase.co',
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnhsZnNhdnR0ZGlqd3l4d3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTM1MzcsImV4cCI6MjA3NTc2OTUzN30.NTxr-qXhKJA0CAZ_mX3Q7bE9NbaANtH7AfJ9mI5FvAg'
+        };
+
+        // =============================================
+        // APPLICATION STATE
+        // =============================================
+        let supabase;
+        let map;
+        let userLocationMarker = null;
+        let userLocationCircle = null;
+        let markers = [];
+        let complaints = [];
+        let selectedLat = null;
+        let selectedLng = null;
+        const currentUserId = 'user_' + Math.random().toString(36).substr(2, 9);
+        let activeStatusFilter = "all";
+        let realtimeSubscription;
+
+        // =============================================
+        // INITIALIZATION
+        // =============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            try {
+                // Initialize Supabase
+                supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+                updateConnectionStatus(true);
+                showToast('Connected to community database', 'success');
+                
+                // Initialize Map
+                initializeMap();
+                
+                // Load initial data
+                await fetchComplaints();
+                
+                // Set up real-time subscription
+                setupRealtimeSubscription();
+                
+                // Set up event listeners
+                setupEventListeners();
+                
+                // Locate user
+                locateUser();
+                
+            } catch (error) {
+                console.error('Error initializing application:', error);
+                showToast('Error initializing application', 'error');
+                updateConnectionStatus(false);
+            }
+        }
+
+        function initializeMap() {
+            // Initialize map with a more centered view
+            map = L.map('map').setView([12.9716, 77.5946], 12);
+            
+            // Define map layers
+            const standardLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            });
+            
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+                maxZoom: 19
+            });
+            
+            // Add default layer
+            standardLayer.addTo(map);
+            
+            // Layer control
+            const baseMaps = {
+                "Standard Map": standardLayer,
+                "Satellite View": satelliteLayer
+            };
+            
+            // Add layer control to map
+            L.control.layers(baseMaps).addTo(map);
+        }
+
+        // =============================================
+        // DATA MANAGEMENT
+        // =============================================
+        async function fetchComplaints() {
+            if (!supabase) {
+                showToast('Database not configured', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('complaints')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                complaints = data || [];
+                updateComplaintList();
+                updateStats();
+                addMarkers();
+                updateConnectionStatus(true);
+                
+            } catch (error) {
+                console.error('Error fetching complaints:', error);
+                showToast('Error loading community issues', 'error');
+                updateConnectionStatus(false);
+            }
+        }
+
+        function updateStats() {
+            const total = complaints.length;
+            const pending = complaints.filter(c => c.status === 'pending').length;
+            const inProgress = complaints.filter(c => c.status === 'in-progress').length;
+            const solved = complaints.filter(c => c.status === 'solved').length;
+            
+            document.getElementById('stats-bar').innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: var(--danger);">${pending}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: var(--warning);">${inProgress}</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: #4ade80;">${solved}</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            `;
+        }
+
+        // =============================================
+        // MAP FUNCTIONS
+        // =============================================
+        function addMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Add markers only for complaints with valid coordinates
+            complaints.forEach(complaint => {
+                if (hasValidCoordinates(complaint)) {
+                    addMarkerForComplaint(complaint);
+                }
+            });
+        }
+
+        function addMarkerForComplaint(complaint) {
+            const icon = createCustomIcon(complaint.status);
+            
+            const marker = L.marker([complaint.latitude, complaint.longitude], { icon: icon })
+                .addTo(map)
+                .bindPopup(createPopupContent(complaint));
+
+            marker.on('popupopen', () => {
+                setupPopupInteractions(complaint.id);
+            });
+            
+            markers.push(marker);
+        }
+
+        function createCustomIcon(status) {
+            const colors = {
+                'pending': '#f94144',
+                'in-progress': '#f72585',
+                'solved': '#4ade80'
+            };
+            
+            const color = colors[status] || '#4361ee';
+            
+            return L.divIcon({
+                html: `
+                    <div style="
+                        background-color: ${color};
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 12px;
+                    ">
+                        <i class="fas ${getStatusIcon(status)}"></i>
+                    </div>
+                `,
+                className: 'custom-marker',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'pending': 'fa-clock',
+                'in-progress': 'fa-tools',
+                'solved': 'fa-check-circle'
+            };
+            return icons[status] || 'fa-exclamation-circle';
+        }
+
+        function hasValidCoordinates(complaint) {
+            return complaint && 
+                   complaint.latitude !== null && 
+                   complaint.latitude !== undefined && 
+                   complaint.longitude !== null && 
+                   complaint.longitude !== undefined &&
+                   !isNaN(parseFloat(complaint.latitude)) &&
+                   !isNaN(parseFloat(complaint.longitude));
+        }
+
+        // =============================================
+        // UI UPDATE FUNCTIONS
+        // =============================================
+        function updateComplaintList() {
+            const container = document.getElementById('complaint-list');
+            const activeFilter = document.querySelector('.filter-btn.active').getAttribute('data-status');
+            
+            // Filter complaints based on active filter
+            let filteredComplaints = complaints;
+            if (activeFilter !== 'all') {
+                filteredComplaints = complaints.filter(c => 
+                    (c.status || 'pending') === activeFilter
+                );
+            }
+            
+            // Update complaint count
+            document.getElementById('complaint-count').textContent = filteredComplaints.length;
+            
+            // Display complaints
+            if (filteredComplaints.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No Issues Found</h3>
+                        <p>No community issues match your current filter.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            filteredComplaints.forEach(complaint => {
+                const item = document.createElement('div');
+                item.className = 'complaint-card';
+                item.setAttribute('data-id', complaint.id);
+                
+                const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
+                const status = complaint.status || 'pending';
+                const hasCoords = hasValidCoordinates(complaint);
+                const priority = getComplaintPriority(complaint);
+                
+                item.innerHTML = createComplaintCardHTML(complaint, hasVoted, status, hasCoords, priority);
+                setupComplaintCardInteractions(item, complaint.id);
+                container.appendChild(item);
+            });
+        }
+
+        function createComplaintCardHTML(complaint, hasVoted, status, hasCoords, priority) {
+            let distanceText = '';
+            if (userLocationMarker && hasCoords) {
+                try {
+                    const userLatLng = userLocationMarker.getLatLng();
+                    const distance = map.distance(userLatLng, [complaint.latitude, complaint.longitude]);
+                    distanceText = `<div style="font-size: 0.8rem; margin-bottom: 8px; color: var(--primary);"><i class="fas fa-location-arrow"></i> ${(distance / 1000).toFixed(1)} km away</div>`;
+                } catch (error) {
+                    console.error('Error calculating distance:', error);
+                }
+            }
+            
+            return `
+                <div class="complaint-priority priority-${priority}"></div>
+                <div class="complaint-header">
+                    <div class="complaint-title">${complaint.name}</div>
+                    <div class="complaint-department">${complaint.department}</div>
+                </div>
+                <div class="complaint-location">
+                    <i class="fas fa-map-marker-alt"></i> ${complaint.location}
+                </div>
+                ${distanceText}
+                ${!hasCoords ? '<div class="no-coordinates-warning"><i class="fas fa-exclamation-triangle"></i> No map location available</div>' : ''}
+                <div class="complaint-description">${complaint.details}</div>
+                <div class="complaint-contact">
+                    <i class="fas fa-phone"></i> ${complaint.phone} ${complaint.email ? `• ${complaint.email}` : ''}
+                </div>
+                <div class="complaint-meta">
+                    <span><i class="fas fa-calendar"></i> ${formatDate(complaint.created_at)}</span>
+                    <span><i class="fas fa-eye"></i> ${complaint.views || 0} views</span>
+                </div>
+                <div class="vote-section">
+                    <button class="vote-btn ${hasVoted ? 'voted' : ''}" data-id="${complaint.id}">
+                        <i class="fas fa-thumbs-up"></i> ${hasVoted ? 'Supported' : 'Support'}
+                    </button>
+                    <span class="vote-count">${complaint.votes || 0} supporters</span>
+                </div>
+                ${hasCoords ? 
+                    `<div class="coordinates">
+                        <i class="fas fa-crosshairs"></i> ${complaint.latitude.toFixed(6)}, ${complaint.longitude.toFixed(6)}
+                    </div>` : 
+                    ''
+                }
+                <div class="complaint-actions">
+                    ${status === 'pending' ? 
+                        `<button class="action-btn in-progress" data-id="${complaint.id}">
+                            <i class="fas fa-tools"></i> Mark In Progress
+                        </button>` : 
+                        ''
+                    }
+                    ${status !== 'solved' ? 
+                        `<button class="action-btn solved" data-id="${complaint.id}">
+                            <i class="fas fa-check-circle"></i> Mark Resolved
+                        </button>` : 
+                        ''
+                    }
+                    ${hasCoords ? 
+                        `<button class="action-btn" data-id="${complaint.id}" style="background: var(--primary-light); color: var(--primary);" onclick="focusOnComplaint('${complaint.id}')">
+                            <i class="fas fa-map-pin"></i> View on Map
+                        </button>` : 
+                        ''
+                    }
+                </div>
+            `;
+        }
+
+        function setupComplaintCardInteractions(item, complaintId) {
+            const markSolvedBtn = item.querySelector('.action-btn.solved');
+            if (markSolvedBtn) {
+                markSolvedBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    updateComplaintStatus(complaintId, 'solved');
+                });
+            }
+            
+            const markInProgressBtn = item.querySelector('.action-btn.in-progress');
+            if (markInProgressBtn) {
+                markInProgressBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    updateComplaintStatus(complaintId, 'in-progress');
+                });
+            }
+            
+            const voteBtn = item.querySelector('.vote-btn');
+            if (voteBtn) {
+                voteBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    voteOnComplaint(complaintId);
+                });
+            }
+            
+            item.addEventListener('click', function() {
+                focusOnComplaint(complaintId);
+            });
+        }
+
+        function focusOnComplaint(complaintId) {
+            const complaint = complaints.find(c => c.id === complaintId);
+            if (!complaint) return;
+            
+            if (hasValidCoordinates(complaint)) {
+                map.setView([complaint.latitude, complaint.longitude], 16);
+                
+                // Find and open the marker popup
+                markers.forEach(marker => {
+                    const markerLatLng = marker.getLatLng();
+                    if (markerLatLng.lat === complaint.latitude && markerLatLng.lng === complaint.longitude) {
+                        marker.openPopup();
+                    }
+                });
+            } else {
+                showToast('This issue does not have a map location', 'warning');
+            }
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('open');
+            }
+        }
+
+        function createPopupContent(complaint) {
+            const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
+            const hasCoords = hasValidCoordinates(complaint);
+            
+            return `
+                <div style="min-width: 280px;">
+                    <h3 style="margin-bottom: 8px; color: var(--primary);">${complaint.name}</h3>
+                    <p style="margin-bottom: 6px;"><strong>Issue:</strong> ${complaint.details}</p>
+                    <p style="margin-bottom: 6px;"><strong>Status:</strong> 
+                        <span style="color: ${getStatusColor(complaint.status)}">${complaint.status ? complaint.status.toUpperCase() : 'PENDING'}</span>
+                    </p>
+                    <p style="margin-bottom: 6px;"><strong>Department:</strong> ${complaint.department}</p>
+                    <p style="margin-bottom: 6px;"><strong>Location:</strong> ${complaint.location}</p>
+                    <p style="margin-bottom: 6px;"><strong>Contact:</strong> ${complaint.phone} ${complaint.email ? `(${complaint.email})` : ''}</p>
+                    <div style="margin-bottom: 10px;">
+                        <div class="vote-section">
+                            <button class="vote-btn ${hasVoted ? 'voted' : ''}" data-id="${complaint.id}">
+                                <i class="fas fa-thumbs-up"></i> ${hasVoted ? 'Supported' : 'Support'}
+                            </button>
+                            <span class="vote-count">${complaint.votes || 0} supporters</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--gray);">
+                        <span>Reported: ${formatDate(complaint.created_at)}</span>
+                    </div>
+                    ${hasCoords ? 
+                        `<div class="coordinates" style="margin-top: 8px; font-size: 0.7rem;">
+                            <i class="fas fa-crosshairs"></i> ${complaint.latitude.toFixed(6)}, ${complaint.longitude.toFixed(6)}
+                        </div>` :
+                        `<div class="no-coordinates-warning" style="margin-top: 8px;">
+                            <i class="fas fa-exclamation-triangle"></i> No location coordinates available
+                        </div>`
+                    }
+                    <div style="margin-top: 10px; display: flex; gap: 5px;">
+                        ${(!complaint.status || complaint.status === 'pending') ? 
+                            `<button class="action-btn in-progress" data-id="${complaint.id}" style="font-size: 0.8rem;">
+                                <i class="fas fa-tools"></i> Mark In Progress
+                            </button>` : 
+                            ''
+                        }
+                        ${(!complaint.status || complaint.status !== 'solved') ? 
+                            `<button class="action-btn solved" data-id="${complaint.id}" style="font-size: 0.8rem;">
+                                <i class="fas fa-check-circle"></i> Mark Resolved
+                            </button>` : 
+                            ''
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        function setupPopupInteractions(complaintId) {
+            setTimeout(() => {
+                const markSolvedBtn = document.querySelector('.action-btn.solved');
+                if (markSolvedBtn) {
+                    markSolvedBtn.addEventListener('click', function() {
+                        const complaintId = this.getAttribute('data-id');
+                        updateComplaintStatus(complaintId, 'solved');
+                    });
+                }
+                
+                const markInProgressBtn = document.querySelector('.action-btn.in-progress');
+                if (markInProgressBtn) {
+                    markInProgressBtn.addEventListener('click', function() {
+                        const complaintId = this.getAttribute('data-id');
+                        updateComplaintStatus(complaintId, 'in-progress');
+                    });
+                }
+                
+                const voteBtn = document.querySelector('.vote-btn');
+                if (voteBtn) {
+                    voteBtn.addEventListener('click', function() {
+                        const complaintId = this.getAttribute('data-id');
+                        voteOnComplaint(complaintId);
+                    });
+                }
+            }, 100);
+        }
+
+        // =============================================
+        // UTILITY FUNCTIONS
+        // =============================================
+        function getStatusColor(status) {
+            const colors = {
+                'pending': '#f94144',
+                'in-progress': '#f72585',
+                'solved': '#4ade80'
+            };
+            return colors[status] || '#6c757d';
+        }
+
+        function getComplaintPriority(complaint) {
+            // Simple priority calculation based on votes and time
+            const votes = complaint.votes || 0;
+            const createdAt = new Date(complaint.created_at);
+            const now = new Date();
+            const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60);
+            
+            let score = votes * 2;
+            if (hoursSinceCreation < 24) score += 5; // New issues get priority
+            if (hoursSinceCreation < 2) score += 10; // Very recent issues get higher priority
+            
+            if (score > 15) return 'high';
+            if (score > 8) return 'medium';
+            return 'low';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return `${diffDays} days ago`;
+                return date.toLocaleDateString();
+            } catch (e) {
+                return 'Invalid date';
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            
+            if (connected) {
+                indicator.className = 'status-indicator connected';
+                text.textContent = 'Connected';
+            } else {
+                indicator.className = 'status-indicator disconnected';
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // =============================================
+        // EVENT HANDLERS
+        // =============================================
+        function setupEventListeners() {
+            // Filter functionality
+            document.querySelectorAll('.filter-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    activeStatusFilter = this.getAttribute('data-status');
+                    updateComplaintList();
+                });
+            });
+            
+            // Map controls
+            document.getElementById('locate-btn').addEventListener('click', locateUser);
+            document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+            
+            // Map type controls
+            document.getElementById('standard-map').addEventListener('click', function() {
+                document.getElementById('standard-map').classList.add('active');
+                document.getElementById('satellite-map').classList.remove('active');
+            });
+            
+            document.getElementById('satellite-map').addEventListener('click', function() {
+                document.getElementById('satellite-map').classList.add('active');
+                document.getElementById('standard-map').classList.remove('active');
+            });
+            
+            // Complaint modal
+            document.getElementById('add-complaint-btn').addEventListener('click', () => {
+                document.getElementById('add-complaint-modal').style.display = 'flex';
+                document.getElementById('add-complaint-modal').classList.add('active');
+            });
+            
+            document.getElementById('close-modal').addEventListener('click', closeModal);
+            document.getElementById('cancel-complaint').addEventListener('click', closeModal);
+            
+            // Map click for location selection
+            map.on('click', function(e) {
+                if (document.getElementById('add-complaint-modal').style.display === 'flex') {
+                    selectedLat = e.latlng.lat;
+                    selectedLng = e.latlng.lng;
+                    
+                    document.getElementById('selected-lat').textContent = selectedLat.toFixed(6);
+                    document.getElementById('selected-lng').textContent = selectedLng.toFixed(6);
+                    
+                    // Add a temporary marker
+                    if (window.tempMarker) {
+                        map.removeLayer(window.tempMarker);
+                    }
+                    
+                    window.tempMarker = L.marker([selectedLat, selectedLng], {
+                        icon: createCustomIcon('pending')
+                    }).addTo(map).bindPopup('Selected location for new issue').openPopup();
+                }
+            });
+            
+            // Form submission
+            document.getElementById('submit-complaint').addEventListener('click', submitComplaint);
+            
+            // Sidebar toggle
+            document.querySelector('.toggle-sidebar').addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.add('open');
+            });
+            
+            document.querySelector('.close-sidebar').addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.remove('open');
+            });
+            
+            // Search functionality
+            document.querySelector('.search-box').addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                filterComplaints(query);
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+                if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    document.querySelector('.search-box').focus();
+                }
+            });
+        }
+
+        function filterComplaints(query) {
+            if (query.trim() === '') {
+                updateComplaintList();
+                return;
+            }
+            
+            const filtered = complaints.filter(complaint => 
+                complaint.name.toLowerCase().includes(query) || 
+                complaint.location.toLowerCase().includes(query) ||
+                complaint.details.toLowerCase().includes(query) ||
+                complaint.department.toLowerCase().includes(query)
+            );
+            
+            const container = document.getElementById('complaint-list');
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>No Matching Issues</h3>
+                        <p>No community issues match your search.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            filtered.forEach(complaint => {
+                const item = document.createElement('div');
+                item.className = 'complaint-card';
+                item.setAttribute('data-id', complaint.id);
+                
+                const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
+                const status = complaint.status || 'pending';
+                const hasCoords = hasValidCoordinates(complaint);
+                const priority = getComplaintPriority(complaint);
+                
+                item.innerHTML = createComplaintCardHTML(complaint, hasVoted, status, hasCoords, priority);
+                setupComplaintCardInteractions(item, complaint.id);
+                container.appendChild(item);
+            });
+        }
+
+        // =============================================
+        // CORE FUNCTIONALITY
+        // =============================================
+        function locateUser() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const { latitude, longitude } = position.coords;
+                        map.setView([latitude, longitude], 15);
+                        
+                        if (userLocationMarker) map.removeLayer(userLocationMarker);
+                        if (userLocationCircle) map.removeLayer(userLocationCircle);
+                        
+                        userLocationMarker = L.marker([latitude, longitude], {
+                            icon: createCustomIcon('solved')
+                        }).addTo(map).bindPopup('Your current location').openPopup();
+                        
+                        userLocationCircle = L.circle([latitude, longitude], {
+                            color: '#4361ee',
+                            fillColor: '#4361ee',
+                            fillOpacity: 0.1,
+                            radius: position.coords.accuracy
+                        }).addTo(map);
+                        
+                        document.getElementById('location-details').innerHTML = 
+                            `Latitude: ${latitude.toFixed(6)}<br>Longitude: ${longitude.toFixed(6)}`;
+                        document.getElementById('distance-info').textContent = 'Issues sorted by distance from you';
+                        
+                        updateComplaintList();
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        showToast('Unable to access your location', 'warning');
+                    }
+                );
+            } else {
+                showToast('Geolocation not supported by your browser', 'warning');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('add-complaint-modal').style.display = 'none';
+            document.getElementById('add-complaint-modal').classList.remove('active');
+            document.getElementById('complaint-form').reset();
+            selectedLat = null;
+            selectedLng = null;
+            document.getElementById('selected-lat').textContent = 'Select on map';
+            document.getElementById('selected-lng').textContent = 'Select on map';
+            
+            if (window.tempMarker) {
+                map.removeLayer(window.tempMarker);
+                window.tempMarker = null;
+            }
+        }
+
+        async function submitComplaint() {
+            const form = document.getElementById('complaint-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            if (!selectedLat || !selectedLng) {
+                showToast('Please select a location on the map', 'warning');
+                return;
+            }
+            
+            const complaintData = {
+                name: document.getElementById('complaint-name').value,
+                phone: document.getElementById('complaint-phone').value,
+                email: document.getElementById('complaint-email').value || null,
+                details: document.getElementById('complaint-details').value,
+                department: document.getElementById('complaint-department').value,
+                location: document.getElementById('complaint-location').value,
+                latitude: selectedLat,
+                longitude: selectedLng,
+                status: 'pending',
+                votes: 0,
+                voted_users: []
+            };
+            
+            const newComplaint = await addComplaint(complaintData);
+            if (newComplaint) {
+                closeModal();
+            }
+        }
+
+        async function addComplaint(complaintData) {
+            if (!supabase) {
+                showToast('Database connection error', 'error');
+                return null;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('complaints')
+                    .insert([complaintData])
+                    .select();
+
+                if (error) throw error;
+
+                showToast('Issue reported successfully!', 'success');
+                return data ? data[0] : null;
+                
+            } catch (error) {
+                console.error('Error adding complaint:', error);
+                showToast('Error submitting issue: ' + error.message, 'error');
+                return null;
+            }
+        }
+
+        async function updateComplaintStatus(complaintId, newStatus) {
+            if (!supabase) {
+                showToast('Database connection error', 'error');
+                return false;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('complaints')
+                    .update({ 
+                        status: newStatus, 
+                        updated_at: new Date().toISOString() 
+                    })
+                    .eq('id', complaintId);
+
+                if (error) throw error;
+
+                showToast(`Issue marked as ${newStatus}`, 'success');
+                return true;
+                
+            } catch (error) {
+                console.error('Error updating complaint:', error);
+                showToast('Error updating issue status', 'error');
+                return false;
+            }
+        }
+
+        async function voteOnComplaint(complaintId) {
+            if (!supabase) {
+                showToast('Database connection error', 'error');
+                return false;
+            }
+
+            try {
+                const complaint = complaints.find(c => c.id === complaintId);
+                if (!complaint) return false;
+                
+                // Check if user has already voted
+                const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
+                
+                let updatedVotes;
+                let updatedVotedUsers;
+                
+                if (hasVoted) {
+                    // Remove vote
+                    updatedVotes = Math.max(0, (complaint.votes || 0) - 1);
+                    updatedVotedUsers = (complaint.voted_users || []).filter(id => id !== currentUserId);
+                } else {
+                    // Add vote
+                    updatedVotes = (complaint.votes || 0) + 1;
+                    updatedVotedUsers = [...(complaint.voted_users || []), currentUserId];
+                }
+                
+                const { error } = await supabase
+                    .from('complaints')
+                    .update({ 
+                        votes: updatedVotes, 
+                        voted_users: updatedVotedUsers,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', complaintId);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                showToast(hasVoted ? 'Support removed' : 'Thank you for your support!', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error voting on complaint:', error);
+                showToast('Error updating support', 'error');
+                return false;
+            }
+        }
+
+        function setupRealtimeSubscription() {
+            if (!supabase) return;
+
+            realtimeSubscription = supabase
+                .channel('complaints-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'complaints'
+                    },
+                    (payload) => {
+                        if (payload.eventType === 'INSERT') {
+                            // Add new complaint to the list and map
+                            complaints.unshift(payload.new);
+                            updateComplaintList();
+                            updateStats();
+                            if (hasValidCoordinates(payload.new)) {
+                                addMarkerForComplaint(payload.new);
+                            }
+                            showToast('New community issue reported!', 'success');
+                        } else if (payload.eventType === 'UPDATE') {
+                            // Update existing complaint
+                            const index = complaints.findIndex(c => c.id === payload.new.id);
+                            if (index !== -1) {
+                                complaints[index] = payload.new;
+                                updateComplaintList();
+                                updateStats();
+                                addMarkers(); // Refresh all markers
+                            }
+                        } else if (payload.eventType === 'DELETE') {
+                            // Remove complaint from list and map
+                            complaints = complaints.filter(c => c.id !== payload.old.id);
+                            updateComplaintList();
+                            updateStats();
+                            addMarkers(); // Refresh all markers
+                        }
+                        
+                        updateConnectionStatus(true);
+                    }
+                )
+                .subscribe();
+        }
+    </script>
+</body>
+</html>
