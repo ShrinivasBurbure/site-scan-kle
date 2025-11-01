@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <main class="main-grid">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SiteScan - Smart Civic Issue Reporting Platform</title>
@@ -8,6 +9,34 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+/* Galat (sirf desktop me sahi dikhega) */
+
+/* Sahi (mobile me bhi fit hoga) */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 16px;
+}
+
+@media (min-width: 1024px) {
+  .main-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 50px;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+  }
+  .hero img {
+    width: 100%;
+    height: auto;
+  }
+}
+
     :root {
       --bg-gradient: linear-gradient(135deg, #f8fafc, #e2e8f0, #ffffff);
       --card-bg: rgba(255, 255, 255, 0.95);
@@ -44,14 +73,20 @@
     }
 
     body {
-      font-family: "Inter", "Segoe UI", Arial, sans-serif;
-      background: var(--bg-gradient);
-      color: var(--text-dark);
-      overflow-x: hidden;
-      scroll-behavior: smooth;
-      line-height: 1.6;
-      transition: background 0.5s ease, color 0.5s ease;
-    }
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  line-height: 1.6;
+  transition: background 0.5s ease, color 0.5s ease;
+}
+
 
     /* Theme Toggle Button */
     .theme-toggle {
@@ -2917,6 +2952,80 @@
     gap: 12px;
     align-items: flex-start;
   }
+  
+  /* === Responsive Fix for Mobile View === */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  header {
+    flex-wrap: wrap;
+    padding: 12px 20px;
+  }
+
+  .logo h1 {
+    font-size: 1.4rem;
+  }
+
+  nav {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: white;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    padding: 10px;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
+
+  .hero {
+    flex-direction: column;
+    height: auto;
+    padding: 60px 20px;
+  }
+
+  .hero h2 {
+    font-size: 2rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+
+  section {
+    padding: 60px 20px;
+  }
+
+  .department-grid,
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.department-card,
+.service-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+
+
+
 }
   </style>
 </head>
@@ -3589,6 +3698,18 @@ login start-->
     opacity: 0.7;
     pointer-events: none;
 }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+  max-width: 1200px;
+  gap: 40px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+
 </style>
 
 <div class="dropdown" id="dropdown">
@@ -4618,6 +4739,9 @@ login end-->
     margin-bottom: 8px;
     min-height: 18px;
   }
+
+  
+
 </style>
 
 <!-- ===== Supabase Auth + Toggle Logic ===== -->
@@ -5301,7 +5425,7 @@ login end-->
     </div>
   </section>
 
-  
+</main>
 
   <!-- Footer -->
   <footer>
@@ -5774,6 +5898,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+</script>
+<script>
+  const menu = document.querySelector('.mobile-menu');
+  const nav = document.querySelector('nav');
+  menu.addEventListener('click', () => {
+    nav.classList.toggle('active');
+  });
 </script>
 
 
