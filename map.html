@@ -347,15 +347,6 @@
             margin-bottom: 12px;
         }
         
-        .complaint-contact {
-            font-size: 0.85rem;
-            color: var(--gray);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
         .complaint-department {
             display: inline-block;
             background: var(--primary-light);
@@ -908,6 +899,149 @@
             border-left: 4px solid var(--primary);
         }
         
+        /* NEW: Evidence image styles */
+        .evidence-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 12px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .evidence-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .evidence-placeholder {
+            width: 100%;
+            height: 150px;
+            background: var(--gray-light);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            margin: 12px 0;
+        }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .close-image-modal {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            z-index: 3001;
+        }
+        
+        .image-caption {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 1.1rem;
+            padding: 10px;
+            background: rgba(0,0,0,0.6);
+        }
+        
+        /* Admin info styles matching vote.html */
+        .admin-info {
+            background: rgba(0,0,0,0.02);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            border-left: 3px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+        
+        .admin-info:hover {
+            background: rgba(0,0,0,0.04);
+        }
+        
+        .admin-info h4 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+        
+        .admin-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+        
+        .admin-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .admin-label {
+            min-width: 100px;
+            font-weight: 500;
+            color: var(--gray);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .admin-value {
+            flex: 1;
+            font-size: 0.85rem;
+        }
+        
+        /* Resolution proof grid */
+        .resolution-proof-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .proof-image-container {
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            height: 80px;
+            border: 1px solid var(--gray-light);
+        }
+        
+        .proof-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 position: absolute;
@@ -968,6 +1102,19 @@
             
             .modal-content {
                 width: 95%;
+            }
+            
+            .evidence-image {
+                max-height: 200px;
+            }
+            
+            .admin-row {
+                flex-direction: column;
+                gap: 6px;
+            }
+            
+            .admin-label {
+                min-width: auto;
             }
         }
 
@@ -1088,7 +1235,9 @@
                 <div class="status-indicator disconnected" id="status-indicator"></div>
                 <span id="status-text">Connecting...</span>
             </div>
-          
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
         </div>
     </header>
     
@@ -1113,15 +1262,15 @@
                     <button class="filter-btn active" data-status="all">
                         <span>All</span>
                     </button>
-                    <button class="filter-btn" data-status="pending">
+                    <button class="filter-btn" data-status="Pending">
                         <div class="status-indicator pending"></div>
                         <span>Pending</span>
                     </button>
-                    <button class="filter-btn" data-status="in-progress">
+                    <button class="filter-btn" data-status="In Progress">
                         <div class="status-indicator in-progress"></div>
                         <span>In Progress</span>
                     </button>
-                    <button class="filter-btn" data-status="solved">
+                    <button class="filter-btn" data-status="Resolved">
                         <div class="status-indicator solved"></div>
                         <span>Resolved</span>
                     </button>
@@ -1143,11 +1292,11 @@
                 <i class="fas fa-bars"></i>
             </button>
             
-           <!--<div class="location-info">
+            <div class="location-info">
                 <h3><i class="fas fa-location-arrow"></i> Your Location</h3>
                 <p id="location-details">Detecting your location...</p>
                 <p id="distance-info"></p>
-            </div>--> 
+            </div>
             
             <div class="map-controls">
                 <button class="control-btn" id="locate-btn" title="Find my location">
@@ -1247,6 +1396,15 @@
                         <input type="text" class="form-input" id="complaint-location" placeholder="Street, landmark, area" required>
                     </div>
                     
+                    <!-- NEW: Image Upload Field -->
+                    <div class="form-group">
+                        <label class="form-label" for="complaint-image">
+                            <i class="fas fa-camera"></i> Upload Evidence Image
+                        </label>
+                        <input type="file" class="form-input" id="complaint-image" accept="image/*">
+                        <small>Upload a photo showing the issue (optional)</small>
+                    </div>
+                    
                     <div class="form-group">
                         <label class="form-label">
                             <i class="fas fa-crosshairs"></i> Location Coordinates
@@ -1268,6 +1426,13 @@
                 </button>
             </div>
         </div>
+    </div>
+    
+    <!-- NEW: Image Modal for Full-Size Viewing -->
+    <div class="image-modal" id="image-modal">
+        <span class="close-image-modal">&times;</span>
+        <img class="image-modal-content" id="expanded-image">
+        <div class="image-caption" id="image-caption"></div>
     </div>
     
     <footer>
@@ -1395,9 +1560,15 @@
 
         function updateStats() {
             const total = complaints.length;
-            const pending = complaints.filter(c => c.status === 'pending').length;
-            const inProgress = complaints.filter(c => c.status === 'in-progress').length;
-            const solved = complaints.filter(c => c.status === 'solved').length;
+            const pending = complaints.filter(c => 
+                c.status === 'Pending' || c.status === 'pending'
+            ).length;
+            const inProgress = complaints.filter(c => 
+                c.status === 'In Progress' || c.status === 'in-progress' || c.status === 'In progress'
+            ).length;
+            const solved = complaints.filter(c => 
+                c.status === 'Resolved' || c.status === 'Solved' || c.status === 'solved'
+            ).length;
             
             document.getElementById('stats-bar').innerHTML = `
                 <div class="stat-item">
@@ -1451,8 +1622,13 @@
 
         function createCustomIcon(status) {
             const colors = {
+                'Pending': '#f94144',
                 'pending': '#f94144',
+                'In Progress': '#f72585',
                 'in-progress': '#f72585',
+                'In progress': '#f72585',
+                'Resolved': '#4ade80',
+                'Solved': '#4ade80',
                 'solved': '#4ade80'
             };
             
@@ -1484,8 +1660,13 @@
 
         function getStatusIcon(status) {
             const icons = {
+                'Pending': 'fa-clock',
                 'pending': 'fa-clock',
+                'In Progress': 'fa-tools',
                 'in-progress': 'fa-tools',
+                'In progress': 'fa-tools',
+                'Resolved': 'fa-check-circle',
+                'Solved': 'fa-check-circle',
                 'solved': 'fa-check-circle'
             };
             return icons[status] || 'fa-exclamation-circle';
@@ -1508,12 +1689,21 @@
             const container = document.getElementById('complaint-list');
             const activeFilter = document.querySelector('.filter-btn.active').getAttribute('data-status');
             
-            // Filter complaints based on active filter
+            // Filter complaints based on active filter - MATCHING VOTE.HTML LOGIC
             let filteredComplaints = complaints;
             if (activeFilter !== 'all') {
-                filteredComplaints = complaints.filter(c => 
-                    (c.status || 'pending') === activeFilter
-                );
+                if (activeFilter === 'Resolved') {
+                    // Show both Resolved and Solved complaints
+                    filteredComplaints = complaints.filter(c => 
+                        c.status === 'Resolved' || c.status === 'Solved' || c.status === 'solved'
+                    );
+                } else {
+                    filteredComplaints = complaints.filter(c => 
+                        c.status === activeFilter || 
+                        (activeFilter === 'Pending' && c.status === 'pending') ||
+                        (activeFilter === 'In Progress' && (c.status === 'in-progress' || c.status === 'In progress'))
+                    );
+                }
             }
             
             // Update complaint count
@@ -1539,7 +1729,7 @@
                 item.setAttribute('data-id', complaint.id);
                 
                 const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
-                const status = complaint.status || 'pending';
+                const status = complaint.status || 'Pending';
                 const hasCoords = hasValidCoordinates(complaint);
                 const priority = getComplaintPriority(complaint);
                 
@@ -1549,6 +1739,7 @@
             });
         }
 
+        // UPDATED: Removed contact information for privacy
         function createComplaintCardHTML(complaint, hasVoted, status, hasCoords, priority) {
             let distanceText = '';
             if (userLocationMarker && hasCoords) {
@@ -1561,6 +1752,113 @@
                 }
             }
             
+            // UPDATED: Match vote.html's image handling logic
+            let imageUrl = '';
+            let hasImage = false;
+            
+            if (complaint.photo) {
+                try {
+                    let photoData = complaint.photo;
+                    
+                    // Handle arrays and JSON strings like vote.html
+                    if (typeof photoData === 'string' && photoData.trim().startsWith('[')) {
+                        try {
+                            photoData = JSON.parse(photoData);
+                        } catch (e) {
+                            // Keep as string if parsing fails
+                        }
+                    }
+                    
+                    // Take first image if array
+                    if (Array.isArray(photoData) && photoData.length > 0) {
+                        imageUrl = photoData[0];
+                        hasImage = true;
+                    } 
+                    // Use string directly
+                    else if (typeof photoData === 'string' && photoData.trim() !== '') {
+                        imageUrl = photoData;
+                        hasImage = true;
+                    }
+                    
+                    // Construct full URL if needed
+                    if (hasImage && !imageUrl.startsWith('http')) {
+                        imageUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/Complaint-media/${imageUrl}`;
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing photo data:', error);
+                }
+            }
+            
+            // UPDATED: Handle resolved status and proof like vote.html
+            const isResolved = complaint.status === 'Resolved' || complaint.status === 'Solved' || complaint.status === 'solved';
+            let resolvedPhotos = [];
+            
+            // Handle resolved proof photos like vote.html
+            if (isResolved && complaint.resolved_proof) {
+                try {
+                    resolvedPhotos = Array.isArray(complaint.resolved_proof)
+                        ? complaint.resolved_proof
+                        : JSON.parse(complaint.resolved_proof);
+                } catch {
+                    resolvedPhotos = complaint.resolved_proof.split(',').map(url => url.trim());
+                }
+            }
+            
+            const imageHTML = hasImage ? 
+                `<img src="${imageUrl}" alt="Evidence for ${complaint.name}" class="evidence-image" data-id="${complaint.id}" onerror="handleImageError(this)">` :
+                `<div class="evidence-placeholder">
+                    <i class="fas fa-camera" style="font-size: 2rem; margin-bottom: 8px;"></i>
+                    <span>No Evidence Image</span>
+                </div>`;
+            
+            // UPDATED: Include admin updates like vote.html
+            const adminInfoHTML = complaint.remarks || complaint.resolved_by || complaint.resolved_at || complaint.resolved_description ? `
+                <div class="admin-info">
+                    <h4><i class="fas fa-user-cog"></i> Admin Updates</h4>
+                    ${complaint.remarks ? `
+                        <div class="admin-row">
+                            <div class="admin-label"><i class="fas fa-comment"></i> Remarks:</div>
+                            <div class="admin-value">${complaint.remarks}</div>
+                        </div>
+                    ` : ''}
+                    ${complaint.resolved_by ? `
+                        <div class="admin-row">
+                            <div class="admin-label"><i class="fas fa-user-check"></i> Resolved By:</div>
+                            <div class="admin-value">${complaint.resolved_by}</div>
+                        </div>
+                    ` : ''}
+                    ${complaint.resolved_at ? `
+                        <div class="admin-row">
+                            <div class="admin-label"><i class="fas fa-calendar-check"></i> Resolved At:</div>
+                            <div class="admin-value">${formatDate(complaint.resolved_at)}</div>
+                        </div>
+                    ` : ''}
+                    ${complaint.resolved_description ? `
+                        <div class="admin-row">
+                            <div class="admin-label"><i class="fas fa-info-circle"></i> Resolution:</div>
+                            <div class="admin-value">${complaint.resolved_description}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : '';
+            
+            // UPDATED: Include resolved proof images
+            const resolvedImagesHTML = resolvedPhotos.length > 0 ? `
+                <div class="evidence-section" style="margin-top: 12px;">
+                    <div style="font-weight: 500; color: var(--gray); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-check-circle"></i> Resolution Proof:
+                    </div>
+                    <div class="resolution-proof-grid">
+                        ${resolvedPhotos.map(photo => `
+                            <div class="proof-image-container" onclick="openImageModal('${photo}', '${complaint.id}')">
+                                <img src="${photo}" alt="Resolution proof">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+            
             return `
                 <div class="complaint-priority priority-${priority}"></div>
                 <div class="complaint-header">
@@ -1572,14 +1870,25 @@
                 </div>
                 ${distanceText}
                 ${!hasCoords ? '<div class="no-coordinates-warning"><i class="fas fa-exclamation-triangle"></i> No map location available</div>' : ''}
-                <div class="complaint-description">${complaint.details}</div>
-                <div class="complaint-contact">
-                    <i class="fas fa-phone"></i> ${complaint.phone} ${complaint.email ? `• ${complaint.email}` : ''}
+                
+                <!-- Evidence Image Display -->
+                <div class="evidence-section">
+                    ${imageHTML}
                 </div>
+                
+                ${resolvedImagesHTML}
+                
+                <div class="complaint-description">${complaint.details}</div>
+                
+                <!-- REMOVED: Contact information for privacy -->
+                
                 <div class="complaint-meta">
                     <span><i class="fas fa-calendar"></i> ${formatDate(complaint.created_at)}</span>
                     <span><i class="fas fa-eye"></i> ${complaint.views || 0} views</span>
                 </div>
+                
+                ${adminInfoHTML}
+                
                 <div class="vote-section">
                     <button class="vote-btn ${hasVoted ? 'voted' : ''}" data-id="${complaint.id}">
                         <i class="fas fa-thumbs-up"></i> ${hasVoted ? 'Supported' : 'Support'}
@@ -1593,18 +1902,6 @@
                     ''
                 }
                 <div class="complaint-actions">
-                    ${status === 'pending' ? 
-                        `<button class="action-btn in-progress" data-id="${complaint.id}">
-                            <i class="fas fa-tools"></i> Mark In Progress
-                        </button>` : 
-                        ''
-                    }
-                    ${status !== 'solved' ? 
-                        `<button class="action-btn solved" data-id="${complaint.id}">
-                            <i class="fas fa-check-circle"></i> Mark Resolved
-                        </button>` : 
-                        ''
-                    }
                     ${hasCoords ? 
                         `<button class="action-btn" data-id="${complaint.id}" style="background: var(--primary-light); color: var(--primary);" onclick="focusOnComplaint('${complaint.id}')">
                             <i class="fas fa-map-pin"></i> View on Map
@@ -1616,22 +1913,6 @@
         }
 
         function setupComplaintCardInteractions(item, complaintId) {
-            const markSolvedBtn = item.querySelector('.action-btn.solved');
-            if (markSolvedBtn) {
-                markSolvedBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    updateComplaintStatus(complaintId, 'solved');
-                });
-            }
-            
-            const markInProgressBtn = item.querySelector('.action-btn.in-progress');
-            if (markInProgressBtn) {
-                markInProgressBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    updateComplaintStatus(complaintId, 'in-progress');
-                });
-            }
-            
             const voteBtn = item.querySelector('.vote-btn');
             if (voteBtn) {
                 voteBtn.addEventListener('click', function(e) {
@@ -1639,6 +1920,27 @@
                     voteOnComplaint(complaintId);
                 });
             }
+            
+            // Set up image click event
+            const evidenceImage = item.querySelector('.evidence-image');
+            if (evidenceImage) {
+                evidenceImage.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openImageModal(this.src, complaintId);
+                });
+            }
+            
+            // Set up proof image click events
+            const proofImages = item.querySelectorAll('.proof-image-container');
+            proofImages.forEach(container => {
+                container.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const img = this.querySelector('img');
+                    if (img) {
+                        openImageModal(img.src, complaintId);
+                    }
+                });
+            });
             
             item.addEventListener('click', function() {
                 focusOnComplaint(complaintId);
@@ -1669,9 +1971,58 @@
             }
         }
 
+        // UPDATED: Popup content with vote.html data structure and removed contact info
         function createPopupContent(complaint) {
             const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
             const hasCoords = hasValidCoordinates(complaint);
+            
+            // UPDATED: Use the same image URL logic as in createComplaintCardHTML
+            let imageUrl = '';
+            let hasImage = false;
+            
+            if (complaint.photo) {
+                try {
+                    let photoData = complaint.photo;
+                    
+                    if (typeof photoData === 'string' && photoData.trim().startsWith('[')) {
+                        try {
+                            photoData = JSON.parse(photoData);
+                        } catch (e) {
+                            // Keep as string if parsing fails
+                        }
+                    }
+                    
+                    if (Array.isArray(photoData) && photoData.length > 0) {
+                        imageUrl = photoData[0];
+                        hasImage = true;
+                    } 
+                    else if (typeof photoData === 'string' && photoData.trim() !== '') {
+                        imageUrl = photoData;
+                        hasImage = true;
+                    }
+                    
+                    if (hasImage && !imageUrl.startsWith('http')) {
+                        imageUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/Complaint-media/${imageUrl}`;
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing photo data in popup:', error);
+                }
+            }
+            
+            // UPDATED: Handle resolved proof for popup
+            const isResolved = complaint.status === 'Resolved' || complaint.status === 'Solved' || complaint.status === 'solved';
+            let resolvedPhotos = [];
+            
+            if (isResolved && complaint.resolved_proof) {
+                try {
+                    resolvedPhotos = Array.isArray(complaint.resolved_proof)
+                        ? complaint.resolved_proof
+                        : JSON.parse(complaint.resolved_proof);
+                } catch {
+                    resolvedPhotos = complaint.resolved_proof.split(',').map(url => url.trim());
+                }
+            }
             
             return `
                 <div style="min-width: 280px;">
@@ -1682,7 +2033,49 @@
                     </p>
                     <p style="margin-bottom: 6px;"><strong>Department:</strong> ${complaint.department}</p>
                     <p style="margin-bottom: 6px;"><strong>Location:</strong> ${complaint.location}</p>
-                    <p style="margin-bottom: 6px;"><strong>Contact:</strong> ${complaint.phone} ${complaint.email ? `(${complaint.email})` : ''}</p>
+                    
+                    <!-- REMOVED: Contact information for privacy -->
+                    
+                    <!-- Evidence Image in Popup -->
+                    ${hasImage ? 
+                        `<div style="margin-bottom: 10px;">
+                            <img src="${imageUrl}" alt="Evidence for ${complaint.name}" style="width: 100%; border-radius: 8px; cursor: pointer;" onclick="openImageModal('${imageUrl}', '${complaint.id}')" onerror="this.style.display='none';">
+                        </div>` : 
+                        `<div style="margin-bottom: 10px; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center; color: var(--gray);">
+                            <i class="fas fa-camera" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                            <div>No evidence image</div>
+                        </div>`
+                    }
+                    
+                    <!-- Resolution Proof in Popup -->
+                    ${resolvedPhotos.length > 0 ? `
+                        <div style="margin-bottom: 10px;">
+                            <div style="font-weight: 500; color: var(--gray); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-check-circle"></i> Resolution Proof:
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px;">
+                                ${resolvedPhotos.map(photo => `
+                                    <div style="border-radius: 8px; overflow: hidden; position: relative; cursor: pointer; height: 60px; border: 1px solid var(--gray-light);">
+                                        <img src="${photo}" alt="Resolution proof" style="width: 100%; height: 100%; object-fit: cover;" onclick="openImageModal('${photo}', '${complaint.id}')">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Admin Info in Popup -->
+                    ${complaint.remarks || complaint.resolved_by || complaint.resolved_at || complaint.resolved_description ? `
+                        <div style="background: rgba(0,0,0,0.02); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--primary);">
+                            <h4 style="color: var(--primary); margin-bottom: 8px; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-user-cog"></i> Admin Updates
+                            </h4>
+                            ${complaint.remarks ? `<p style="margin-bottom: 4px; font-size: 0.8rem;"><strong>Remarks:</strong> ${complaint.remarks}</p>` : ''}
+                            ${complaint.resolved_by ? `<p style="margin-bottom: 4px; font-size: 0.8rem;"><strong>Resolved By:</strong> ${complaint.resolved_by}</p>` : ''}
+                            ${complaint.resolved_at ? `<p style="margin-bottom: 4px; font-size: 0.8rem;"><strong>Resolved At:</strong> ${formatDate(complaint.resolved_at)}</p>` : ''}
+                            ${complaint.resolved_description ? `<p style="margin-bottom: 4px; font-size: 0.8rem;"><strong>Resolution:</strong> ${complaint.resolved_description}</p>` : ''}
+                        </div>
+                    ` : ''}
+                    
                     <div style="margin-bottom: 10px;">
                         <div class="vote-section">
                             <button class="vote-btn ${hasVoted ? 'voted' : ''}" data-id="${complaint.id}">
@@ -1702,47 +2095,25 @@
                             <i class="fas fa-exclamation-triangle"></i> No location coordinates available
                         </div>`
                     }
-                    <div style="margin-top: 10px; display: flex; gap: 5px;">
-                        ${(!complaint.status || complaint.status === 'pending') ? 
-                            `<button class="action-btn in-progress" data-id="${complaint.id}" style="font-size: 0.8rem;">
-                                <i class="fas fa-tools"></i> Mark In Progress
-                            </button>` : 
-                            ''
-                        }
-                        ${(!complaint.status || complaint.status !== 'solved') ? 
-                            `<button class="action-btn solved" data-id="${complaint.id}" style="font-size: 0.8rem;">
-                                <i class="fas fa-check-circle"></i> Mark Resolved
-                            </button>` : 
-                            ''
-                        }
-                    </div>
                 </div>
             `;
         }
 
         function setupPopupInteractions(complaintId) {
             setTimeout(() => {
-                const markSolvedBtn = document.querySelector('.action-btn.solved');
-                if (markSolvedBtn) {
-                    markSolvedBtn.addEventListener('click', function() {
-                        const complaintId = this.getAttribute('data-id');
-                        updateComplaintStatus(complaintId, 'solved');
-                    });
-                }
-                
-                const markInProgressBtn = document.querySelector('.action-btn.in-progress');
-                if (markInProgressBtn) {
-                    markInProgressBtn.addEventListener('click', function() {
-                        const complaintId = this.getAttribute('data-id');
-                        updateComplaintStatus(complaintId, 'in-progress');
-                    });
-                }
-                
                 const voteBtn = document.querySelector('.vote-btn');
                 if (voteBtn) {
                     voteBtn.addEventListener('click', function() {
                         const complaintId = this.getAttribute('data-id');
                         voteOnComplaint(complaintId);
+                    });
+                }
+                
+                // Set up image click in popup
+                const popupImage = document.querySelector('.leaflet-popup-content img');
+                if (popupImage) {
+                    popupImage.addEventListener('click', function() {
+                        openImageModal(this.src, complaintId);
                     });
                 }
             }, 100);
@@ -1753,8 +2124,13 @@
         // =============================================
         function getStatusColor(status) {
             const colors = {
+                'Pending': '#f94144',
                 'pending': '#f94144',
+                'In Progress': '#f72585',
                 'in-progress': '#f72585',
+                'In progress': '#f72585',
+                'Resolved': '#4ade80',
+                'Solved': '#4ade80',
                 'solved': '#4ade80'
             };
             return colors[status] || '#6c757d';
@@ -1827,6 +2203,44 @@
             }, 4000);
         }
 
+        // Image Modal Functions
+        function openImageModal(imageSrc, complaintId) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('expanded-image');
+            const caption = document.getElementById('image-caption');
+            
+            // Find the complaint to get details for caption
+            const complaint = complaints.find(c => c.id === complaintId);
+            if (complaint) {
+                caption.textContent = `${complaint.name} - ${complaint.location}`;
+            } else {
+                caption.textContent = 'Evidence Image';
+            }
+            
+            modal.style.display = 'flex';
+            modalImg.src = imageSrc;
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').style.display = 'none';
+        }
+
+        // Image error handler
+        function handleImageError(img) {
+            console.log('Image failed to load:', img.src);
+            img.style.display = 'none';
+            
+            // Create and show placeholder
+            const placeholder = document.createElement('div');
+            placeholder.className = 'evidence-placeholder';
+            placeholder.innerHTML = `
+                <i class="fas fa-camera" style="font-size: 2rem; margin-bottom: 8px;"></i>
+                <span>Image not available</span>
+            `;
+            
+            img.parentNode.appendChild(placeholder);
+        }
+
         // =============================================
         // EVENT HANDLERS
         // =============================================
@@ -1865,6 +2279,14 @@
             
             document.getElementById('close-modal').addEventListener('click', closeModal);
             document.getElementById('cancel-complaint').addEventListener('click', closeModal);
+            
+            // Image modal close
+            document.querySelector('.close-image-modal').addEventListener('click', closeImageModal);
+            document.getElementById('image-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeImageModal();
+                }
+            });
             
             // Map click for location selection
             map.on('click', function(e) {
@@ -1908,6 +2330,7 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     closeModal();
+                    closeImageModal();
                 }
                 if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
                     e.preventDefault();
@@ -1949,7 +2372,7 @@
                 item.setAttribute('data-id', complaint.id);
                 
                 const hasVoted = complaint.voted_users && complaint.voted_users.includes(currentUserId);
-                const status = complaint.status || 'pending';
+                const status = complaint.status || 'Pending';
                 const hasCoords = hasValidCoordinates(complaint);
                 const priority = getComplaintPriority(complaint);
                 
@@ -2026,6 +2449,22 @@
                 return;
             }
             
+            // Use the correct bucket name "Complaint-media"
+            let photoPath = null;
+            const imageInput = document.getElementById('complaint-image');
+            if (imageInput.files && imageInput.files[0]) {
+                try {
+                    photoPath = await uploadImageToSupabase(imageInput.files[0]);
+                    showToast('Image uploaded successfully!', 'success');
+                    console.log('Image uploaded to path:', photoPath);
+                    console.log('Full image URL:', `${SUPABASE_CONFIG.url}/storage/v1/object/public/Complaint-media/${photoPath}`);
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    showToast('Error uploading image. Please try again.', 'error');
+                    return;
+                }
+            }
+            
             const complaintData = {
                 name: document.getElementById('complaint-name').value,
                 phone: document.getElementById('complaint-phone').value,
@@ -2035,15 +2474,44 @@
                 location: document.getElementById('complaint-location').value,
                 latitude: selectedLat,
                 longitude: selectedLng,
-                status: 'pending',
+                status: 'Pending',
                 votes: 0,
-                voted_users: []
+                voted_users: [],
+                photo: photoPath
             };
+            
+            console.log('Submitting complaint with data:', complaintData);
             
             const newComplaint = await addComplaint(complaintData);
             if (newComplaint) {
                 closeModal();
             }
+        }
+
+        // Upload Image to Supabase Storage with correct bucket name
+        async function uploadImageToSupabase(file) {
+            if (!supabase) {
+                throw new Error('Supabase client not initialized');
+            }
+            
+            // Generate a unique filename
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+            const filePath = fileName;
+            
+            console.log('Uploading file to bucket "Complaint-media" with path:', filePath);
+            
+            const { data, error } = await supabase.storage
+                .from('Complaint-media')
+                .upload(filePath, file);
+            
+            if (error) {
+                console.error('Supabase upload error:', error);
+                throw error;
+            }
+            
+            // Return the file path to store in the database
+            return filePath;
         }
 
         async function addComplaint(complaintData) {
@@ -2067,33 +2535,6 @@
                 console.error('Error adding complaint:', error);
                 showToast('Error submitting issue: ' + error.message, 'error');
                 return null;
-            }
-        }
-
-        async function updateComplaintStatus(complaintId, newStatus) {
-            if (!supabase) {
-                showToast('Database connection error', 'error');
-                return false;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('complaints')
-                    .update({ 
-                        status: newStatus, 
-                        updated_at: new Date().toISOString() 
-                    })
-                    .eq('id', complaintId);
-
-                if (error) throw error;
-
-                showToast(`Issue marked as ${newStatus}`, 'success');
-                return true;
-                
-            } catch (error) {
-                console.error('Error updating complaint:', error);
-                showToast('Error updating issue status', 'error');
-                return false;
             }
         }
 
